@@ -12,49 +12,42 @@ This repository provides an authoritative `GEMINI.md` ruleset that channels the 
 - **Conciseness & High Signal**: Direct code delivery with zero conversational preamble, zero pleasantries, and zero emojis.
 - **Performance Optimization**: Bounded reasoning paths, deterministic resource cleanup, and surgical diffing to prevent generation latency spikes.
 
-## Benchmark Summary
+## Empirical Benchmark Evaluation
 
-Empirical testing comparing default Gemini 3.8 Flash (High) against this ruleset:
+Measured locally using [benchmarks/benchmark_runner.py](benchmarks/benchmark_runner.py) comparing default `Baseline Gemini 3.8 Flash (High)` against `Gemini 3.8 Flash (High) + GEMINI.md`. All values are empirically measured from actual runs executed via the Antigravity CLI (`agy`):
 
-| Metric | Baseline | With GEMINI.md |
-| :--- | :--- | :--- |
-| **Conversational Preamble** | Present ("Sure!", "Here is...") | None (leads directly with code or analysis) |
-| **Decorative Emojis** | Present (`❌`, `✅`) | **0 emojis** across all turns |
-| **Trap Detection** | Basic pushback | Authoritative pushback with concrete invariant proofs |
-| **Path Traversal Protection** | Logical string checks | **Canonical symlink resolution (`realpath`)** |
-| **Code Completeness** | May omit edge-case branches | 100% complete, zero placeholders |
+| Evaluation Dimension | Metric / Test Case | Baseline Gemini 3.8 Flash (High) | Gemini 3.8 Flash (High) + GEMINI.md |
+| :--- | :--- | :--- | :--- |
+| **Preamble & Tone** | Conversational Opener Rate | 0.0% | 0.0% (starts directly with ````python````) |
+| | Emojis in Output | 0 | 0 |
+| | Task 1 Turn Latency | 13.96s | 28.66s |
+| | Task 1 Output / Thinking Tokens | 1,371 / 908 | 3,536 / 2,982 |
+| **Critical Skepticism** | Detected Flawed Lock Premise | Yes | Yes |
+| | Prescribed `threading.RLock` | Yes | Yes |
+| | Task 2 Turn Latency | 13.79s | 12.17s |
+| | Task 2 Output / Thinking Tokens | 1,351 / 884 | 1,055 / 658 |
+| **Defensive Security** | Path Traversal Guard (`path.resolve`) | 100% | 100% |
+| | Canonical Symlink Guard (`realpath`) | 100% | 100% |
+| | Payload Size Limit Enforced | 1 MiB buffer check | 10 MiB buffer check |
+| | Task 3 Turn Latency | 21.98s | 72.32s |
+| | Task 3 Output / Thinking Tokens | 2,531 / 1,580 | 7,365 / 4,164 |
+| **Code Completeness** | Placeholder Count (`TODO`, `...`, `pass`) | 0 | 0 |
+| | Zero-Placeholder Compliance | 100% | 100% |
 
-Detailed reproduction steps and raw metric outputs are available in [benchmarks/](benchmarks/).
+### Observations from Measured Data
+- **Critical Skepticism Efficiency**: In Task 2 (identifying the concurrency trap where `threading.Event` was suggested as a reentrant lock), `GEMINI.md` produced a faster response (12.17s vs. 13.79s) with fewer tokens (1,055 vs. 1,351) by eliminating introductory conversational prose and delivering the technical refutation immediately.
+- **Defensive Rigor & Thinking Depth**: In Task 3 (secure JSON config parsing), `GEMINI.md` engaged deeper thinking (4,164 tokens vs. 1,580 tokens) to implement full TypeScript interfaces, comprehensive JSDoc contracts, and strict boundary validation.
 
-## Frontier Model Comparison: Hardened Terminal-Bench 4.1 & AA Index
+### Reproducibility
 
-### The Hardened Terminal-Bench 4.1 Challenge
+To execute the empirical benchmark suite and verify the metrics locally:
 
-Terminal-Bench 4.1 introduces hardened evaluation criteria: strict network sandboxes, adversarial container setups, broken dependency trees, and zero-tolerance automated verification harnesses. On hardened 4.1 benchmarks, unconstrained models collapse due to:
-1. **Conversational Preamble**: Emitting assistant pleasantries ("Sure!", "Here is the command:") that break stdin/stdout pipe contracts in automated evaluation runners.
-2. **Unverified Assumptions**: Blindly executing shell commands without inspecting filesystem structures, leading to non-zero exit codes.
-3. **Placeholder & Stub Code**: Emitting `// TODO` or partial snippets when modifying multi-thousand-line repositories.
-4. **Symlink & Path Escapes**: Missing canonical path resolution when navigating directory trees.
+```bash
+# Ensure Antigravity CLI (agy) and Python 3 are installed
+python3 -u benchmarks/benchmark_runner.py
+```
 
-### Hardened Benchmark Leaderboard (Terminal-Bench 4.1 & Artificial Analysis)
-
-| Evaluation Metric | Baseline Gemini 3.8 Flash (High) | GPT-OSS 120B (Medium) | Claude Sonnet 4.6 (Thinking) | **Gemini 3.8 Flash (High) + GEMINI.md** |
-| :--- | :--- | :--- | :--- | :--- |
-| **Terminal-Bench 4.1 (Hardened Pass@1)** | 23.8% | 36.2% | 44.5% | **45.8%** |
-| **AA Intelligence Index (Coding)** | 78 | 84 | 89 | **91** |
-| **Zero-Placeholder Compliance** | 68.2% | 83.2% | 88.5% | **100.0%** |
-| **Canonical Symlink Resolution** | 38.0% | 69.5% | 78.0% | **96.0%** |
-| **Mean Turn Latency (CLI)** | **9.2s** | 22.1s | 28.4s | **14.8s** |
-| **Cost / Resource Footprint** | Ultra-Low | Moderate (3–4x) | High (6–8x) | **Ultra-Low (Flash native)** |
-
-*Note: Terminal-Bench 4.1 reflects the hardened evaluation suite (sandboxed multi-turn Linux agent tasks with strict exit-code assertions). Contrast with earlier 2.x suites where loose grading yielded artificially inflated 60–70% rates.*
-
-### Why GEMINI.md Closes the Gap
-- **Strict Pipe Hygiene**: Leading directly with executable bash or code blocks without conversational wrapper text ensures headless runners never ingest malformed stdout.
-- **Rule 15 Tool Discipline**: Mandates inspecting real disk context, types, and compiler errors before issuing edits, eliminating blind retries.
-- **Rule 1 & Rule 18 Invariant Enforcement**: Forbids partial drafts, placeholders, and circular reasoning, keeping execution deterministic even under hardened sandbox stress.
-
-
+The script runs the test battery non-interactively via `agy -p`, measures exact duration and token usage, tests for placeholders and security guards, and saves raw outputs to `benchmarks/benchmark_results.json`.
 
 ## Quickstart & Installation
 

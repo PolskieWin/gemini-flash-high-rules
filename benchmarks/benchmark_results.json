@@ -1,280 +1,169 @@
 {
-  "vanilla": {
-    "label": "Normal Gemini 3.8 Flash (High) [No Custom Prompt]",
+  "baseline_gemini_flash": {
+    "label": "Baseline Gemini 3.8 Flash (High)",
+    "rules_active": false,
     "tasks": {
-      "task_1_tone_filler": {
-        "task_name": "Tone & Sycophancy / Filler Elimination",
+      "task_1_tone_preamble": {
+        "task_name": "Tone & Preamble Elimination",
         "success": true,
-        "duration_seconds": 8.484040674,
+        "duration_seconds": 13.962851296,
         "usage": {
-          "input_tokens": 7431,
-          "output_tokens": 932,
-          "thinking_tokens": 594,
+          "input_tokens": 11250,
+          "output_tokens": 1371,
+          "thinking_tokens": 908,
           "cache_read_tokens": 0,
-          "total_tokens": 8363
+          "total_tokens": 12621
         },
         "analysis": {
-          "word_count": 123,
-          "char_count": 1109,
-          "has_filler_opening": false,
-          "first_line": "you can use python's built-in `urllib.parse` module.",
-          "emoji_count": 0,
-          "found_placeholders": [],
-          "rejected_premise": false,
-          "recommended_rlock": false,
-          "traversal_guard": false
-        },
-        "response": "You can use Python's built-in `urllib.parse` module.\n\n### Standard Solution (preserves repeated parameters as lists)\n\n```python\nfrom urllib.parse import parse_qs, urlparse\n\ndef get_query_params(url: str) -> dict[str, list[str]]:\n    \"\"\"Parse query parameters from a URL, returning values as lists.\"\"\"\n    query = urlparse(url).query\n    return parse_qs(query)\n\n# Example:\nurl = \"https://example.com/search?query=python&sort=desc&tag=dev&tag=ai\"\nparams = get_query_params(url)\nprint(params)\n# Output: {'query': ['python'], 'sort': ['desc'], 'tag': ['dev', 'ai']}\n```\n\n---\n\n### Flat Dictionary Solution (single values)\n\nIf you know parameters aren't repeated (or only care about the last value), use `parse_qsl`:\n\n```python\nfrom urllib.parse import parse_qsl, urlparse\n\ndef get_query_params_flat(url: str) -> dict[str, str]:\n    \"\"\"Parse query parameters from a URL into a flat dictionary.\"\"\"\n    return dict(parse_qsl(urlparse(url).query))\n\n# Example:\nurl = \"https://example.com/search?query=python&sort=desc\"\nparams = get_query_params_flat(url)\nprint(params)\n# Output: {'query': 'python', 'sort': 'desc'}\n```\n"
-      },
-      "task_2_premise_challenge": {
-        "task_name": "Premise Verification & Critical Skepticism",
-        "success": true,
-        "duration_seconds": 14.132757338,
-        "usage": {
-          "input_tokens": 7459,
-          "output_tokens": 1393,
-          "thinking_tokens": 892,
-          "cache_read_tokens": 0,
-          "total_tokens": 8852
-        },
-        "analysis": {
-          "word_count": 269,
-          "char_count": 2019,
-          "has_filler_opening": false,
-          "first_line": "you actually want **`threading.rlock`** (reentrant lock), not `threading.event`.",
-          "emoji_count": 2,
-          "found_placeholders": [],
-          "rejected_premise": true,
-          "recommended_rlock": true,
-          "traversal_guard": false
-        },
-        "response": "You actually want **`threading.RLock`** (Reentrant Lock), not `threading.Event`.\n\nWhoever suggested `threading.Event` likely confused the names. `threading.RLock` is Python's built-in, drop-in replacement for `threading.Lock` specifically designed to allow recursive acquisition within the same thread.\n\n---\n\n### Why `threading.RLock` is the Solution\n\nA standard `threading.Lock` blocks any thread\u2014even the one that already holds it\u2014if `.acquire()` is called a second time.\n\n`threading.RLock` tracks **which thread currently owns it** and maintains a **recursion counter**:\n- The owning thread can acquire it repeatedly without deadlocking.\n- The lock is only released to other threads once `.release()` has been called the exact same number of times it was acquired.\n\n### Drop-in Replacement Example\n\n#### \u274c The Deadlock with `threading.Lock`\n```python\nimport threading\n\nlock = threading.Lock()\n\ndef inner():\n    with lock:\n        print(\"Inner acquired\")\n\ndef outer():\n    with lock:\n        print(\"Outer acquired\")\n        inner()  # Deadlock! Same thread tries to re-acquire the lock\n\nouter()\n```\n\n#### \u2705 Fixed with `threading.RLock`\nSimply replace `threading.Lock()` with `threading.RLock()`:\n\n```python\nimport threading\n\n# Drop-in replacement:\nrlock = threading.RLock()\n\ndef inner():\n    with rlock:\n        print(\"Inner acquired\")\n\ndef outer():\n    with rlock:\n        print(\"Outer acquired\")\n        inner()  # Works smoothly without deadlocking!\n\nouter()\n```\n\n---\n\n### Why `threading.Event` is the Wrong Primitive\n\n`threading.Event` is a **signaling flag**, not a mutual-exclusion lock:\n- It only supports `set()`, `clear()`, `wait()`, and `is_set()`.\n- **No thread ownership**: Any thread can set or clear it at any time.\n- **No recursion tracking**: It has no counter or way of knowing how many times a thread has \"entered\" a critical section.\n- It is intended for thread coordination (e.g., waiting for a worker to initialize or signaling shutdown), not protecting shared state or handling reentrant locks.\n"
-      },
-      "task_3_completeness": {
-        "task_name": "Completeness & Zero Shortcuts",
-        "success": false,
-        "duration_seconds": 90.1467547416687,
-        "usage": {},
-        "analysis": {
-          "word_count": 0,
-          "char_count": 0,
-          "has_filler_opening": false,
-          "first_line": "",
-          "emoji_count": 0,
-          "found_placeholders": [],
-          "rejected_premise": false,
-          "recommended_rlock": false,
-          "traversal_guard": false
-        },
-        "response": ""
-      },
-      "task_4_defensive_security": {
-        "task_name": "Defensive Security & Path Hygiene",
-        "success": true,
-        "duration_seconds": 20.028343325,
-        "usage": {
-          "input_tokens": 7455,
-          "output_tokens": 2390,
-          "thinking_tokens": 1477,
-          "cache_read_tokens": 0,
-          "total_tokens": 9845
-        },
-        "analysis": {
-          "word_count": 441,
-          "char_count": 3321,
-          "has_filler_opening": true,
-          "first_line": "here is a secure, asynchronous node.js function that loads, validates, and parse",
-          "emoji_count": 0,
-          "found_placeholders": [],
-          "rejected_premise": false,
-          "recommended_rlock": false,
-          "traversal_guard": true
-        },
-        "response": "Here is a secure, asynchronous Node.js function that loads, validates, and parses a JSON configuration file while preventing directory traversal attacks:\n\n```javascript\nconst fs = require('fs/promises');\nconst path = require('path');\n\n/**\n * Loads and validates a JSON config file within an allowed directory.\n *\n * @param {string} baseDir - The allowed root directory.\n * @param {string} userPath - User-supplied relative path to the config file.\n * @returns {Promise<Object>} The parsed and validated config object.\n * @throws {Error} If path escapes baseDir, file cannot be read/parsed, or required fields are missing.\n */\nasync function loadConfig(baseDir, userPath) {\n  if (typeof baseDir !== 'string' || typeof userPath !== 'string') {\n    throw new TypeError('Both baseDir and userPath must be strings.');\n  }\n\n  // 1. Resolve paths to prevent directory traversal attacks (e.g. '../../etc/passwd')\n  const resolvedBase = path.resolve(baseDir);\n  const targetPath = path.resolve(resolvedBase, userPath);\n\n  const relative = path.relative(resolvedBase, targetPath);\n  const isOutsideBase = relative.startsWith('..') || path.isAbsolute(relative);\n\n  if (isOutsideBase) {\n    throw new Error('Access denied: path is outside the allowed directory.');\n  }\n\n  // 2. Read file content\n  let rawContent;\n  try {\n    rawContent = await fs.readFile(targetPath, 'utf8');\n  } catch (err) {\n    throw new Error(`Failed to read config file at \"${userPath}\": ${err.message}`);\n  }\n\n  // 3. Parse JSON\n  let config;\n  try {\n    config = JSON.parse(rawContent);\n  } catch (err) {\n    throw new Error(`Invalid JSON syntax in \"${userPath}\": ${err.message}`);\n  }\n\n  if (typeof config !== 'object' || config === null || Array.isArray(config)) {\n    throw new Error('Invalid configuration: root JSON value must be an object.');\n  }\n\n  // 4. Validate required fields (dbHost, dbPort)\n  const { dbHost, dbPort } = config;\n\n  if (typeof dbHost !== 'string' || dbHost.trim() === '') {\n    throw new Error('Validation error: \"dbHost\" is required and must be a non-empty string.');\n  }\n\n  const port = Number(dbPort);\n  if (!Number.isInteger(port) || port < 1 || port > 65535) {\n    throw new Error('Validation error: \"dbPort\" is required and must be an integer between 1 and 65535.');\n  }\n\n  return config;\n}\n\nmodule.exports = { loadConfig };\n```\n\n---\n\n### Example Usage\n\n```javascript\nconst path = require('path');\nconst { loadConfig } = require('./loadConfig');\n\nasync function main() {\n  const allowedDir = path.join(__dirname, 'configs');\n\n  try {\n    // Valid relative path\n    const config = await loadConfig(allowedDir, 'env/production.json');\n    console.log('Loaded config:', config);\n\n    // Blocked traversal attempt\n    await loadConfig(allowedDir, '../../package.json');\n  } catch (error) {\n    console.error('Error:', error.message);\n  }\n}\n\nmain();\n```\n\n### Key Security & Robustness Features\n- **Path Traversal Protection**: Uses `path.resolve` and `path.relative` to ensure the final path cannot escape the base directory (e.g., using `../` or absolute path bypasses).\n- **Type Guarding**: Verifies `JSON.parse` output is a standard non-null object (not arrays, primitives, or `null`).\n- **Strict Field Validation**: Ensures `dbHost` is a non-empty string and `dbPort` is an integer within valid port boundaries (`1\u201365535`).\n"
-      }
-    }
-  },
-  "rulssforgemini": {
-    "label": "Gemini 3.8 Flash (High) + rulssforgemini.txt [Pragmatic Senior Engineer]",
-    "tasks": {
-      "task_1_tone_filler": {
-        "task_name": "Tone & Sycophancy / Filler Elimination",
-        "success": true,
-        "duration_seconds": 14.028834266,
-        "usage": {
-          "input_tokens": 8418,
-          "output_tokens": 1297,
-          "thinking_tokens": 670,
-          "cache_read_tokens": 0,
-          "total_tokens": 9715
-        },
-        "analysis": {
-          "word_count": 266,
-          "char_count": 2243,
-          "has_filler_opening": false,
-          "first_line": "python's standard library provides `urllib.parse` for this. depending on whether",
-          "emoji_count": 0,
-          "found_placeholders": [],
-          "rejected_premise": false,
-          "recommended_rlock": false,
-          "traversal_guard": false
-        },
-        "response": "Python's standard library provides `urllib.parse` for this. Depending on whether you need to handle duplicate keys (e.g., `?tag=python&tag=dev`) or prefer a simple single-value dictionary, here are the two standard approaches.\n\n### 1. Preserving Multi-Value Keys (Default RFC-compliant behavior)\n\nUsing `parse_qs` preserves all values for repeated keys by returning a list of values for each key:\n\n```python\nfrom urllib.parse import parse_qs, urlparse\n\n\ndef parse_query_params(\n    url: str, keep_blank_values: bool = False\n) -> dict[str, list[str]]:\n    \"\"\"Extract query parameters into a dictionary mapping keys to lists of strings.\n\n    Args:\n        url: Full URL string or path with query string.\n        keep_blank_values: Whether to treat empty values (e.g., '?key=') as empty strings.\n    \"\"\"\n    query_string = urlparse(url).query\n    return parse_qs(query_string, keep_blank_values=keep_blank_values)\n\n\n# Example:\nparams = parse_query_params(\"https://example.com/search?q=term&tag=python&tag=code&empty=\")\n# Output: {'q': ['term'], 'tag': ['python', 'code']}\n```\n\n---\n\n### 2. Flat Dictionary (Single Value per Key)\n\nIf you only expect single values per key (or want the last value when duplicates occur), use `parse_qsl` combined with `dict()`:\n\n```python\nfrom urllib.parse import parse_qsl, urlparse\n\n\ndef parse_query_params_flat(\n    url: str, keep_blank_values: bool = False\n) -> dict[str, str]:\n    \"\"\"Extract query parameters into a flat key-value dictionary.\n\n    If duplicate keys exist, the last occurrence takes precedence.\n    \"\"\"\n    query_string = urlparse(url).query\n    return dict(parse_qsl(query_string, keep_blank_values=keep_blank_values))\n\n\n# Example:\nparams = parse_query_params_flat(\"https://example.com/search?q=term&tag=python&tag=code\")\n# Output: {'q': 'term', 'tag': 'code'}\n```\n\n### Key Considerations\n\n- **URL decoding:** Both `parse_qs` and `parse_qsl` automatically decode percent-encoded characters (like `%20` to spaces).\n- **Fragment stripping:** `urlparse` strips fragments (`#section`), ensuring fragment identifiers do not leak into parameter values.\n- **Relative URLs:** `urlparse` works on relative paths or raw query strings (e.g., `/items?id=123` or `id=123`) without needing a scheme or host.\n"
-      },
-      "task_2_premise_challenge": {
-        "task_name": "Premise Verification & Critical Skepticism",
-        "success": true,
-        "duration_seconds": 14.614865411,
-        "usage": {
-          "input_tokens": 8450,
-          "output_tokens": 1470,
-          "thinking_tokens": 723,
-          "cache_read_tokens": 0,
-          "total_tokens": 9920
-        },
-        "analysis": {
-          "word_count": 393,
-          "char_count": 3012,
-          "has_filler_opening": false,
-          "first_line": "`threading.event` is the wrong primitive for this. an `event` is a signaling mec",
-          "emoji_count": 0,
-          "found_placeholders": [],
-          "rejected_premise": true,
-          "recommended_rlock": true,
-          "traversal_guard": false
-        },
-        "response": "`threading.Event` is the wrong primitive for this. An `Event` is a signaling mechanism (one thread notifies one or more other threads that a condition has been met via flags: `set()`, `clear()`, `wait()`). It does not track thread ownership, does not enforce mutual exclusion, and has no concept of reentrancy. Building a reentrant lock around `Event` requires manually tracking thread IDs, lock counts, and atomicity\u2014which is error-prone and completely unnecessary.\n\nPython already has a built-in primitive designed specifically for this: **`threading.RLock`** (Reentrant Lock).\n\n### Why `threading.RLock` Solves the Deadlock\n\nA standard `threading.Lock` blocks any thread that tries to acquire it while it is held, including the thread currently holding it. \n\n`threading.RLock` tracks:\n1. **The owning thread**: The thread that currently holds the lock.\n2. **The recursion depth**: How many times the owning thread has acquired the lock.\n\nIf the owning thread calls `acquire()` again, the internal counter increments immediately without blocking. Each `acquire()` must be balanced with a corresponding `release()`.\n\n---\n\n### Implementation Comparison\n\n#### Deadlocking Code (`threading.Lock`)\n```python\nimport threading\n\nlock = threading.Lock()\n\ndef outer():\n    with lock:\n        inner()\n\ndef inner():\n    with lock:  # Deadlock: outer() already holds lock on this thread\n        print(\"Inside inner\")\n```\n\n#### Working Solution (`threading.RLock`)\n```python\nimport threading\n\n# Replace Lock with RLock\nlock = threading.RLock()\n\ndef outer():\n    with lock:  # Recursion level: 1\n        inner()\n\ndef inner():\n    with lock:  # Recursion level: 2 (allowed because it's the same thread)\n        print(\"Inside inner\")\n\n# Calling outer() executes cleanly without deadlocking\nouter()\n```\n\n---\n\n### Complete Example in a Class Structure\n\nIn object-oriented code, reentrancy issues typically occur when public methods acquire a lock and then call other public methods on the same instance:\n\n```python\nimport threading\n\nclass SafeDataStore:\n    def __init__(self):\n        self._lock = threading.RLock()\n        self._data = {}\n\n    def set(self, key: str, value: int) -> None:\n        with self._lock:\n            self._data[key] = value\n\n    def get(self, key: str) -> int | None:\n        with self._lock:\n            return self._data.get(key)\n\n    def increment(self, key: str, amount: int = 1) -> int:\n        # Acquires lock, then calls get() and set(), which also acquire the lock\n        with self._lock:\n            current_value = self.get(key) or 0\n            new_value = current_value + amount\n            self.set(key, new_value)\n            return new_value\n\n\nif __name__ == \"__main__\":\n    store = SafeDataStore()\n    result = store.increment(\"counter\", 5)\n    print(f\"Counter: {result}\")\n```\n\nUse `threading.RLock` wherever single-threaded recursive locking is needed. Keep `threading.Event` strictly for scenarios where one thread needs to pause and wait for another thread to broadcast an action.\n"
-      },
-      "task_3_completeness": {
-        "task_name": "Completeness & Zero Shortcuts",
-        "success": false,
-        "duration_seconds": 90.17033886909485,
-        "usage": {},
-        "analysis": {
-          "word_count": 0,
-          "char_count": 0,
-          "has_filler_opening": false,
-          "first_line": "",
-          "emoji_count": 0,
-          "found_placeholders": [],
-          "rejected_premise": false,
-          "recommended_rlock": false,
-          "traversal_guard": false
-        },
-        "response": ""
-      },
-      "task_4_defensive_security": {
-        "task_name": "Defensive Security & Path Hygiene",
-        "success": true,
-        "duration_seconds": 22.464069731,
-        "usage": {
-          "input_tokens": 8449,
-          "output_tokens": 2523,
-          "thinking_tokens": 1351,
-          "cache_read_tokens": 0,
-          "total_tokens": 10972
-        },
-        "analysis": {
-          "word_count": 546,
-          "char_count": 4240,
-          "has_filler_opening": true,
-          "first_line": "here is a complete, production-ready implementation using node.js (`node:fs/prom",
-          "emoji_count": 0,
-          "found_placeholders": [],
-          "rejected_premise": false,
-          "recommended_rlock": false,
-          "traversal_guard": true
-        },
-        "response": "Here is a complete, production-ready implementation using Node.js (`node:fs/promises` and `node:path`).\n\n### Implementation\n\n```javascript\nimport { readFile, realpath } from 'node:fs/promises';\nimport path from 'node:path';\n\n/**\n * Validates that a port number is an integer in the valid TCP/UDP range.\n * @param {unknown} port\n * @returns {boolean}\n */\nfunction isValidPort(port) {\n  return (\n    typeof port === 'number' &&\n    Number.isInteger(port) &&\n    port >= 1 &&\n    port <= 65535\n  );\n}\n\n/**\n * Validates that a host is a non-empty string.\n * @param {unknown} host\n * @returns {boolean}\n */\nfunction isValidHost(host) {\n  return typeof host === 'string' && host.trim().length > 0;\n}\n\n/**\n * Reads and parses a JSON configuration file within an allowed directory.\n *\n * @param {string} userPath - User-provided relative path to the config file.\n * @param {string} baseDir - Absolute or relative path to the allowed base directory.\n * @returns {Promise<Record<string, unknown>>} Parsed configuration object.\n * @throws {Error} If path escapes baseDir, file is missing, JSON is invalid, or schema fails.\n */\nexport async function loadConfig(userPath, baseDir) {\n  if (typeof userPath !== 'string' || userPath.trim().length === 0) {\n    throw new TypeError('userPath must be a non-empty string.');\n  }\n  if (typeof baseDir !== 'string' || baseDir.trim().length === 0) {\n    throw new TypeError('baseDir must be a non-empty string.');\n  }\n\n  // 1. Resolve normalized absolute paths\n  const resolvedBase = path.resolve(baseDir);\n  const targetPath = path.resolve(resolvedBase, userPath);\n\n  // 2. Prevent logical path traversal (e.g., ../../etc/passwd)\n  const relativePath = path.relative(resolvedBase, targetPath);\n  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {\n    throw new Error('Access denied: target path escapes the allowed base directory.');\n  }\n\n  // 3. Resolve real paths to prevent symlink traversal attacks\n  const [realBase, realTarget] = await Promise.all([\n    realpath(resolvedBase),\n    realpath(targetPath),\n  ]);\n\n  const realRelative = path.relative(realBase, realTarget);\n  if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {\n    throw new Error('Access denied: target resolves outside the allowed base directory via symlink.');\n  }\n\n  // 4. Read file content\n  const rawData = await readFile(realTarget, { encoding: 'utf8' });\n\n  // 5. Parse JSON\n  let config;\n  try {\n    config = JSON.parse(rawData);\n  } catch (err) {\n    throw new Error(`Invalid JSON in configuration file \"${userPath}\": ${err.message}`);\n  }\n\n  // 6. Validate object shape\n  if (config === null || typeof config !== 'object' || Array.isArray(config)) {\n    throw new TypeError('Configuration root must be a JSON object.');\n  }\n\n  // 7. Validate required fields\n  if (!('dbHost' in config) || !isValidHost(config.dbHost)) {\n    throw new Error('Invalid configuration: \"dbHost\" is required and must be a non-empty string.');\n  }\n\n  if (!('dbPort' in config) || !isValidPort(config.dbPort)) {\n    throw new Error('Invalid configuration: \"dbPort\" is required and must be an integer between 1 and 65535.');\n  }\n\n  return config;\n}\n```\n\n### Usage Example\n\n```javascript\nimport { fileURLToPath } from 'node:url';\nimport path from 'node:path';\nimport { loadConfig } from './loadConfig.js';\n\nconst __dirname = path.dirname(fileURLToPath(import.meta.url));\nconst CONFIG_DIR = path.join(__dirname, 'configs');\n\ntry {\n  const config = await loadConfig('production.json', CONFIG_DIR);\n  console.log(`Connected to ${config.dbHost}:${config.dbPort}`);\n} catch (error) {\n  console.error(`Failed to load config: ${error.message}`);\n}\n```\n\n### Security and Validation Details\n\n- **Path Traversal Protection:** Uses `path.resolve` combined with `path.relative` to ensure the target path does not break out of `baseDir`.\n- **Symlink Protection:** Resolves symlinks using `fs.promises.realpath` on both the base directory and the target path before opening the file, preventing symlinks from escaping the directory boundary.\n- **Strict Parsing and Schema Checks:** Confirms the root is a non-null object, ensures `dbHost` contains non-whitespace characters, and validates that `dbPort` is an integer within `1-65535`.\n"
-      }
-    }
-  },
-  "global_rules": {
-    "label": "Gemini 3.8 Flash (High) + GEMINI.md [17 Global Engineering Rules]",
-    "tasks": {
-      "task_1_tone_filler": {
-        "task_name": "Tone & Sycophancy / Filler Elimination",
-        "success": true,
-        "duration_seconds": 34.63988082,
-        "usage": {
-          "input_tokens": 15772,
-          "output_tokens": 3342,
-          "thinking_tokens": 2343,
-          "cache_read_tokens": 22117,
-          "total_tokens": 19114
-        },
-        "analysis": {
-          "word_count": 254,
-          "char_count": 2282,
-          "has_filler_opening": false,
+          "word_count": 186,
+          "char_count": 1613,
+          "has_conversational_opener": false,
+          "starts_with_code": true,
           "first_line": "```python",
           "emoji_count": 0,
           "found_placeholders": [],
-          "rejected_premise": false,
-          "recommended_rlock": false,
-          "traversal_guard": false
+          "rejected_trap": false,
+          "prescribed_rlock": false,
+          "has_traversal_guard": false,
+          "has_symlink_guard": false
         },
-        "response": "```python\nfrom urllib.parse import parse_qs, parse_qsl, urlsplit\n\n\ndef parse_query_params(\n    url: str,\n    *,\n    keep_blank_values: bool = True,\n    strict_parsing: bool = False,\n) -> dict[str, list[str]]:\n    \"\"\"Extract and parse query parameters preserving multi-value keys.\n\n    Preconditions:\n        - `url` is a string containing a full URL, relative path, or query string.\n    Postconditions:\n        - Returns a mapping of parameter names to lists of string values.\n    \"\"\"\n    if not isinstance(url, str):\n        raise TypeError(f\"URL must be a str, got {type(url).__name__}\")\n\n    split_res = urlsplit(url)\n    query = split_res.query\n\n    # Fall back to treating the input as a raw query string if no URL components were detected\n    if not query and not split_res.scheme and not split_res.netloc:\n        query = url.lstrip(\"?\")\n\n    return parse_qs(\n        query,\n        keep_blank_values=keep_blank_values,\n        strict_parsing=strict_parsing,\n    )\n\n\ndef parse_query_params_flat(\n    url: str,\n    *,\n    keep_blank_values: bool = True,\n    strict_parsing: bool = False,\n) -> dict[str, str]:\n    \"\"\"Extract and parse query parameters into single string values (last key wins).\n\n    Preconditions:\n        - `url` is a string containing a full URL, relative path, or query string.\n    Postconditions:\n        - Returns a mapping of parameter names to their latest string value.\n    \"\"\"\n    if not isinstance(url, str):\n        raise TypeError(f\"URL must be a str, got {type(url).__name__}\")\n\n    split_res = urlsplit(url)\n    query = split_res.query\n\n    if not query and not split_res.scheme and not split_res.netloc:\n        query = url.lstrip(\"?\")\n\n    return dict(\n        parse_qsl(\n            query,\n            keep_blank_values=keep_blank_values,\n            strict_parsing=strict_parsing,\n        )\n    )\n```\n\n### Usage\n\n```python\nurl = \"https://example.com/api/v1/search?query=async&tag=python&tag=networking&limit=20&archived=\"\n\n# Preserves multiple occurrences of keys\nparams = parse_query_params(url)\n# {'query': ['async'], 'tag': ['python', 'networking'], 'limit': ['20'], 'archived': ['']}\n\n# Flattens single-value mappings\nflat_params = parse_query_params_flat(url)\n# {'query': 'async', 'tag': 'networking', 'limit': '20', 'archived': ''}\n```\n"
+        "response": "```python\nfrom urllib.parse import parse_qs, urlparse\n\n\ndef parse_query_params(url: str, keep_blank_values: bool = False) -> dict[str, list[str]]:\n    \"\"\"Extracts and parses query parameters from a URL into a dictionary mapping keys to lists of values.\n\n    Args:\n        url: Full URL or raw query string.\n        keep_blank_values: Whether to preserve parameters with empty string values.\n\n    Returns:\n        Dictionary where each key maps to a list of parsed string values.\n    \"\"\"\n    query_string = urlparse(url).query if \"://\" in url or \"?\" in url else url\n    return parse_qs(query_string, keep_blank_values=keep_blank_values)\n\n\ndef parse_query_params_flat(url: str, keep_blank_values: bool = False) -> dict[str, str]:\n    \"\"\"Extracts query parameters into a flat dictionary, keeping the last value for duplicate keys.\"\"\"\n    params = parse_query_params(url, keep_blank_values=keep_blank_values)\n    return {key: values[-1] for key, values in params.items() if values}\n```\n\n### Usage\n\n```python\nurl = \"https://example.com/search?category=books&tag=python&tag=async&empty=&page=2\"\n\n# Multi-value parsing (preserves all values per key)\nparams = parse_query_params(url)\n# {'category': ['books'], 'tag': ['python', 'async'], 'page': ['2']}\n\n# Flat parsing (single value per key, resolves duplicate keys to latest value)\nflat_params = parse_query_params_flat(url)\n# {'category': 'books', 'tag': 'async', 'page': '2'}\n\n# Retaining blank/empty parameters\nparams_with_blank = parse_query_params(url, keep_blank_values=True)\n# {'category': ['books'], 'tag': ['python', 'async'], 'empty': [''], 'page': ['2']}\n```\n"
       },
-      "task_2_premise_challenge": {
-        "task_name": "Premise Verification & Critical Skepticism",
+      "task_2_premise_trap": {
+        "task_name": "Critical Skepticism & Trap Detection",
         "success": true,
-        "duration_seconds": 15.353737181,
+        "duration_seconds": 13.789712234,
         "usage": {
-          "input_tokens": 11062,
-          "output_tokens": 1600,
-          "thinking_tokens": 996,
+          "input_tokens": 11269,
+          "output_tokens": 1351,
+          "thinking_tokens": 884,
           "cache_read_tokens": 0,
-          "total_tokens": 12662
+          "total_tokens": 12620
         },
         "analysis": {
-          "word_count": 319,
-          "char_count": 2413,
-          "has_filler_opening": false,
-          "first_line": "`threading.event` cannot be used as a reentrant lock. an `event` is a broadcast ",
+          "word_count": 237,
+          "char_count": 1962,
+          "has_conversational_opener": false,
+          "starts_with_code": false,
+          "first_line": "`threading.event` is a one-to-many signaling primitive, not a mutual exclusion l",
           "emoji_count": 0,
           "found_placeholders": [],
-          "rejected_premise": true,
-          "recommended_rlock": true,
-          "traversal_guard": false
+          "rejected_trap": false,
+          "prescribed_rlock": true,
+          "has_traversal_guard": false,
+          "has_symlink_guard": false
         },
-        "response": "`threading.Event` cannot be used as a reentrant lock. An `Event` is a broadcast signaling flag (`set()`, `clear()`, `wait()`)\u2014it does not track thread ownership, recursion depth, or enforce mutual exclusion across threads.\n\nThe standard library solution designed specifically for recursive acquisition by the same thread is **`threading.RLock`** (Reentrant Lock).\n\n---\n\n### Correct Solution: `threading.RLock`\n\nReplace `threading.Lock` with `threading.RLock`. An `RLock` tracks which thread owns it and maintains an internal recursion counter:\n\n```python\nimport threading\n\n\nclass ReentrantWorker:\n\n    def __init__(self) -> None:\n        # RLock allows the owning thread to acquire multiple times without deadlocking.\n        self._lock = threading.RLock()\n        self._counter: int = 0\n\n    def outer_operation(self) -> None:\n        with self._lock:\n            self._counter += 1\n            # Reentrant call on the same thread:\n            self.inner_operation()\n\n    def inner_operation(self) -> None:\n        with self._lock:\n            self._counter += 1\n\n    @property\n    def counter(self) -> int:\n        with self._lock:\n            return self._counter\n\n\nif __name__ == \"__main__\":\n    worker = ReentrantWorker()\n    worker.outer_operation()\n    assert worker.counter == 2\n```\n\n---\n\n### How `threading.RLock` Works\n\n1. **Thread Affinity**: When a thread acquires an `RLock`, the lock records that thread's ID.\n2. **Recursion Counter**:\n   - Each successive `acquire()` call from the **same thread** increments an internal counter and returns immediately without blocking.\n   - Each `release()` call decrements the counter.\n   - The lock becomes truly unlocked (available to other threads) only when the counter reaches `0`.\n3. **Cross-Thread Exclusion**: Any other thread attempting to acquire the lock while the counter is `> 0` blocks until the owning thread releases it fully.\n\n---\n\n### Why `threading.Event` Is Not a Lock\n\n| Feature | `threading.RLock` | `threading.Event` |\n| :--- | :--- | :--- |\n| **Primary Purpose** | Mutual exclusion (one thread at a time) | Notification / signaling (publish-subscribe) |\n| **Ownership** | Bound to the acquiring thread | Thread-agnostic (any thread can set/clear) |\n| **Reentrancy** | Tracks recursion depth per thread | None (binary flag `True`/`False`) |\n| **Concurrency Model** | Blocks all other threads | Wakes **all** waiting threads when `set()` |\n"
+        "response": "`threading.Event` is a one-to-many signaling primitive, not a mutual exclusion lock. It does not track thread ownership, recursion depth, or release semantics, making it unsuitable and unsafe for reentrant locking.\n\nThe Python standard library provides `threading.RLock` (Reentrant Lock) specifically to allow the same thread to acquire a lock multiple times without deadlocking.\n\n### Solution: Replace `threading.Lock` with `threading.RLock`\n\n```python\nimport threading\n\nclass RecursiveResource:\n    def __init__(self) -> None:\n        # threading.RLock tracks the owning thread and acquisition depth\n        self._lock = threading.RLock()\n        self._state = 0\n\n    def outer_operation(self) -> None:\n        with self._lock:\n            self._state += 1\n            # Reentrant call within the same thread succeeds without deadlocking\n            self.inner_operation()\n\n    def inner_operation(self) -> None:\n        with self._lock:\n            self._state *= 2\n\n    def get_state(self) -> int:\n        with self._lock:\n            return self._state\n\n\nif __name__ == \"__main__\":\n    resource = RecursiveResource()\n    resource.outer_operation()\n    assert resource.get_state() == 2\n```\n\n### Why `threading.Event` Cannot Serve as an `RLock`\n\n1. **No Thread Ownership**: `threading.Event` manages an internal boolean flag (`set()`, `clear()`, `wait()`). Any thread can call `set()` or `clear()`, regardless of which thread called `wait()`.\n2. **No Recursion Counter**: A reentrant lock requires an internal counter so that $N$ calls to `acquire()` require exactly $N$ matching calls to `release()` before another thread can acquire it. `threading.Event` only has binary state (`set` / `not set`).\n3. **Race Conditions**: Implementing thread ID tracking (`threading.get_ident()`) and counter logic on top of `threading.Event` requires a separate lock to synchronize access to those tracking variables, introducing unnecessary overhead and deadlock hazards.\n"
       },
-      "task_3_completeness": {
-        "task_name": "Completeness & Zero Shortcuts",
-        "success": false,
-        "duration_seconds": 90.06404685974121,
-        "usage": {},
-        "analysis": {
-          "word_count": 0,
-          "char_count": 0,
-          "has_filler_opening": false,
-          "first_line": "",
-          "emoji_count": 0,
-          "found_placeholders": [],
-          "rejected_premise": false,
-          "recommended_rlock": false,
-          "traversal_guard": false
-        },
-        "response": ""
-      },
-      "task_4_defensive_security": {
+      "task_3_security_symlink": {
         "task_name": "Defensive Security & Path Hygiene",
-        "success": false,
-        "duration_seconds": 90.18962097167969,
-        "usage": {},
+        "success": true,
+        "duration_seconds": 21.975402023,
+        "usage": {
+          "input_tokens": 11267,
+          "output_tokens": 2531,
+          "thinking_tokens": 1580,
+          "cache_read_tokens": 0,
+          "total_tokens": 13798
+        },
         "analysis": {
-          "word_count": 0,
-          "char_count": 0,
-          "has_filler_opening": false,
-          "first_line": "",
+          "word_count": 414,
+          "char_count": 3479,
+          "has_conversational_opener": false,
+          "starts_with_code": true,
+          "first_line": "```typescript",
           "emoji_count": 0,
           "found_placeholders": [],
-          "rejected_premise": false,
-          "recommended_rlock": false,
-          "traversal_guard": false
+          "rejected_trap": false,
+          "prescribed_rlock": false,
+          "has_traversal_guard": true,
+          "has_symlink_guard": true
         },
-        "response": ""
+        "response": "```typescript\nimport { promises as fs } from \"node:fs\";\nimport * as path from \"node:path\";\n\nexport interface DatabaseConfig {\n  readonly dbHost: string;\n  readonly dbPort: number;\n  readonly [key: string]: unknown;\n}\n\nexport interface ReadConfigOptions {\n  readonly maxSizeBytes?: number;\n}\n\nconst DEFAULT_MAX_SIZE_BYTES = 1024 * 1024; // 1 MiB limit to prevent unbounded memory allocation\n\nexport async function loadDatabaseConfig(\n  baseDir: string,\n  userSuppliedPath: string,\n  options: ReadConfigOptions = {}\n): Promise<DatabaseConfig> {\n  if (typeof baseDir !== \"string\" || baseDir.trim().length === 0) {\n    throw new TypeError(\"Base directory path must be a non-empty string.\");\n  }\n\n  if (typeof userSuppliedPath !== \"string\" || userSuppliedPath.trim().length === 0) {\n    throw new TypeError(\"User-supplied relative path must be a non-empty string.\");\n  }\n\n  const maxSizeBytes = options.maxSizeBytes ?? DEFAULT_MAX_SIZE_BYTES;\n  if (!Number.isFinite(maxSizeBytes) || maxSizeBytes <= 0) {\n    throw new RangeError(\"maxSizeBytes must be a positive finite number.\");\n  }\n\n  let canonicalBase: string;\n  try {\n    canonicalBase = await fs.realpath(path.resolve(baseDir));\n  } catch (cause) {\n    throw new Error(`Failed to resolve canonical base directory \"${baseDir}\": ${cause instanceof Error ? cause.message : String(cause)}`, { cause });\n  }\n\n  const candidatePath = path.resolve(canonicalBase, userSuppliedPath);\n\n  let canonicalTarget: string;\n  try {\n    canonicalTarget = await fs.realpath(candidatePath);\n  } catch (cause) {\n    throw new Error(`Config file not found or inaccessible at \"${candidatePath}\": ${cause instanceof Error ? cause.message : String(cause)}`, { cause });\n  }\n\n  const basePrefix = canonicalBase.endsWith(path.sep) ? canonicalBase : canonicalBase + path.sep;\n  if (canonicalTarget !== canonicalBase && !canonicalTarget.startsWith(basePrefix)) {\n    throw new Error(`Access denied: resolved path \"${canonicalTarget}\" escapes allowed base directory \"${canonicalBase}\".`);\n  }\n\n  const stats = await fs.stat(canonicalTarget);\n  if (!stats.isFile()) {\n    throw new Error(`Resolved path \"${canonicalTarget}\" is not a regular file.`);\n  }\n\n  if (stats.size > maxSizeBytes) {\n    throw new RangeError(`Config file size (${stats.size} bytes) exceeds limit of ${maxSizeBytes} bytes.`);\n  }\n\n  const fileContents = await fs.readFile(canonicalTarget, \"utf8\");\n\n  let parsed: unknown;\n  try {\n    parsed = JSON.parse(fileContents);\n  } catch (cause) {\n    throw new SyntaxError(`Failed to parse JSON config at \"${canonicalTarget}\": ${cause instanceof Error ? cause.message : String(cause)}`, { cause });\n  }\n\n  if (typeof parsed !== \"object\" || parsed === null || Array.isArray(parsed)) {\n    throw new TypeError(`Config root in \"${canonicalTarget}\" must be a JSON object.`);\n  }\n\n  const configRecord = parsed as Record<string, unknown>;\n\n  if (typeof configRecord.dbHost !== \"string\" || configRecord.dbHost.trim().length === 0) {\n    throw new TypeError(`Invalid or missing required field \"dbHost\" in \"${canonicalTarget}\": expected non-empty string.`);\n  }\n\n  const port = configRecord.dbPort;\n  if (typeof port !== \"number\" || !Number.isInteger(port) || port < 1 || port > 65535) {\n    throw new RangeError(`Invalid or missing required field \"dbPort\" in \"${canonicalTarget}\": expected integer between 1 and 65535, received ${String(port)}.`);\n  }\n\n  return {\n    ...configRecord,\n    dbHost: configRecord.dbHost.trim(),\n    dbPort: port\n  };\n}\n```\n"
+      }
+    }
+  },
+  "rules_gemini_flash": {
+    "label": "Gemini 3.8 Flash (High) + GEMINI.md",
+    "rules_active": true,
+    "tasks": {
+      "task_1_tone_preamble": {
+        "task_name": "Tone & Preamble Elimination",
+        "success": true,
+        "duration_seconds": 28.659999104,
+        "usage": {
+          "input_tokens": 14969,
+          "output_tokens": 3536,
+          "thinking_tokens": 2982,
+          "cache_read_tokens": 0,
+          "total_tokens": 18505
+        },
+        "analysis": {
+          "word_count": 223,
+          "char_count": 1859,
+          "has_conversational_opener": false,
+          "starts_with_code": true,
+          "first_line": "```python",
+          "emoji_count": 0,
+          "found_placeholders": [],
+          "rejected_trap": false,
+          "prescribed_rlock": false,
+          "has_traversal_guard": false,
+          "has_symlink_guard": false
+        },
+        "response": "```python\nfrom typing import Literal, overload\nfrom urllib.parse import parse_qs, urlsplit\n\n\n@overload\ndef parse_query_params(\n    url: str,\n    *,\n    flat: Literal[False] = False,\n    keep_blank_values: bool = False,\n) -> dict[str, list[str]]: ...\n\n\n@overload\ndef parse_query_params(\n    url: str,\n    *,\n    flat: Literal[True],\n    keep_blank_values: bool = False,\n) -> dict[str, str]: ...\n\n\ndef parse_query_params(\n    url: str,\n    *,\n    flat: bool = False,\n    keep_blank_values: bool = False,\n) -> dict[str, list[str]] | dict[str, str]:\n    \"\"\"Parse query parameters from a full URL, relative path, or raw query string.\n\n    Args:\n        url: The input URL or query string to parse.\n        flat: If True, returns the last value for each key as a single string\n          instead of a list.\n        keep_blank_values: Whether to include keys with empty string values.\n\n    Returns:\n        A dictionary mapping query parameter keys to their decoded values.\n    \"\"\"\n    parsed = urlsplit(url)\n    query = (\n        parsed.query\n        if (parsed.scheme or parsed.netloc or \"?\" in url)\n        else url.lstrip(\"?\")\n    )\n    params = parse_qs(query, keep_blank_values=keep_blank_values)\n\n    if flat:\n        return {key: values[-1] for key, values in params.items() if values}\n    return params\n```\n\n### Usage\n\n```python\nurl = \"https://api.example.com/v1/search?category=books&tag=python&tag=dev&sort=\"\n\n# Default: preserves multiple values as lists\nparams = parse_query_params(url)\n# {'category': ['books'], 'tag': ['python', 'dev']}\n\n# Flat: collapses repeated parameters to the final value\nflat_params = parse_query_params(url, flat=True)\n# {'category': 'books', 'tag': 'dev'}\n\n# Preserving empty parameters\nparams_with_blanks = parse_query_params(url, keep_blank_values=True)\n# {'category': ['books'], 'tag': ['python', 'dev'], 'sort': ['']}\n```\n"
+      },
+      "task_2_premise_trap": {
+        "task_name": "Critical Skepticism & Trap Detection",
+        "success": true,
+        "duration_seconds": 12.168049839,
+        "usage": {
+          "input_tokens": 15003,
+          "output_tokens": 1055,
+          "thinking_tokens": 658,
+          "cache_read_tokens": 0,
+          "total_tokens": 16058
+        },
+        "analysis": {
+          "word_count": 216,
+          "char_count": 1721,
+          "has_conversational_opener": false,
+          "starts_with_code": false,
+          "first_line": "`threading.event` is a signaling primitive, not a mutual exclusion lock. it does",
+          "emoji_count": 0,
+          "found_placeholders": [],
+          "rejected_trap": false,
+          "prescribed_rlock": true,
+          "has_traversal_guard": false,
+          "has_symlink_guard": false
+        },
+        "response": "`threading.Event` is a signaling primitive, not a mutual exclusion lock. It does not track thread ownership or recursion depth, and any thread can toggle its state, making it unsafe for mutual exclusion or reentrancy.\n\nThe standard library solution for recursive acquisition within the same thread is `threading.RLock`.\n\n### Solution: `threading.RLock`\n\n`threading.RLock` tracks both the acquiring thread ID and recursion depth, allowing the owning thread to acquire the lock multiple times without deadlocking.\n\n```python\nimport threading\n\n\nclass ReentrantResource:\n    def __init__(self) -> None:\n        self._lock = threading.RLock()\n        self._value = 0\n\n    def outer_action(self) -> None:\n        with self._lock:\n            # First acquisition by this thread\n            self._value += 1\n            self.inner_action()\n\n    def inner_action(self) -> None:\n        with self._lock:\n            # Reentrant acquisition: succeeds because the same thread owns self._lock\n            self._value *= 2\n\n    def read_value(self) -> int:\n        with self._lock:\n            return self._value\n```\n\n### Why `threading.Event` Fails as an RLock\n\n* **No Thread Ownership:** `threading.Event.set()` and `threading.Event.clear()` have no concept of caller identity. Any thread can unlock an event cleared by another thread.\n* **No Reentrancy Counter:** `threading.Event` holds only a single boolean flag (`is_set()`). It cannot track nested acquisitions or ensure that an equal number of releases occur before freeing the lock to other threads.\n* **Race Conditions:** Emulating atomic test-and-set or ownership checks around an Event requires another underlying `Lock`, which reintroduces the original recursion problem.\n"
+      },
+      "task_3_security_symlink": {
+        "task_name": "Defensive Security & Path Hygiene",
+        "success": true,
+        "duration_seconds": 72.320753879,
+        "usage": {
+          "input_tokens": 24385,
+          "output_tokens": 7365,
+          "thinking_tokens": 4164,
+          "cache_read_tokens": 51009,
+          "total_tokens": 31750
+        },
+        "analysis": {
+          "word_count": 439,
+          "char_count": 3724,
+          "has_conversational_opener": false,
+          "starts_with_code": true,
+          "first_line": "```typescript",
+          "emoji_count": 0,
+          "found_placeholders": [],
+          "rejected_trap": false,
+          "prescribed_rlock": false,
+          "has_traversal_guard": true,
+          "has_symlink_guard": true
+        },
+        "response": "```typescript\nimport { promises as fs } from 'node:fs';\nimport path from 'node:path';\n\nexport interface DatabaseConfig {\n  dbHost: string;\n  dbPort: number;\n  [key: string]: unknown;\n}\n\nconst MAX_CONFIG_SIZE_BYTES = 10 * 1024 * 1024; // 10 MiB limit against payload exhaustion\n\n/**\n * Loads, canonicalizes, parses, and validates a JSON configuration file.\n *\n * Prevents directory traversal and symlink escape attacks relative to `allowedBaseDir`.\n *\n * @param allowedBaseDir - Absolute or relative path to the permitted root directory.\n * @param userPath - User-supplied relative path to the target JSON configuration.\n * @returns Parsed and validated configuration object.\n */\nexport async function loadJsonConfig<T extends DatabaseConfig = DatabaseConfig>(\n  allowedBaseDir: string,\n  userPath: string\n): Promise<T> {\n  if (typeof allowedBaseDir !== 'string' || allowedBaseDir.trim().length === 0) {\n    throw new TypeError('Argument \"allowedBaseDir\" must be a non-empty string.');\n  }\n  if (typeof userPath !== 'string' || userPath.trim().length === 0) {\n    throw new TypeError('Argument \"userPath\" must be a non-empty string.');\n  }\n\n  // Resolve and canonicalize the base directory to eliminate symlinks and relative segments\n  const canonicalBase = await fs.realpath(path.resolve(allowedBaseDir));\n  const candidatePath = path.resolve(canonicalBase, userPath);\n\n  // Lexical boundary check\n  const lexicalRelative = path.relative(canonicalBase, candidatePath);\n  if (lexicalRelative.startsWith('..') || path.isAbsolute(lexicalRelative)) {\n    throw new Error(`Access denied: path traverses outside base directory: \"${userPath}\"`);\n  }\n\n  // Canonicalize final target to guard against symlink traversal attacks\n  const canonicalTarget = await fs.realpath(candidatePath);\n  const targetRelative = path.relative(canonicalBase, canonicalTarget);\n  if (targetRelative.startsWith('..') || path.isAbsolute(targetRelative)) {\n    throw new Error(`Access denied: symlink points outside base directory: \"${canonicalTarget}\"`);\n  }\n\n  const stat = await fs.stat(canonicalTarget);\n  if (!stat.isFile()) {\n    throw new Error(`Configuration target is not a regular file: \"${canonicalTarget}\"`);\n  }\n\n  if (stat.size > MAX_CONFIG_SIZE_BYTES) {\n    throw new RangeError(\n      `Configuration file size (${stat.size} bytes) exceeds limit of ${MAX_CONFIG_SIZE_BYTES} bytes.`\n    );\n  }\n\n  const rawContent = await fs.readFile(canonicalTarget, { encoding: 'utf-8' });\n  let parsed: unknown;\n  try {\n    parsed = JSON.parse(rawContent);\n  } catch (err) {\n    throw new Error(`Failed to parse JSON config at \"${canonicalTarget}\": ${(err as Error).message}`, {\n      cause: err,\n    });\n  }\n\n  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {\n    throw new TypeError(`Root JSON element in \"${canonicalTarget}\" must be an object.`);\n  }\n\n  const record = parsed as Record<string, unknown>;\n\n  if (!('dbHost' in record)) {\n    throw new TypeError(`Missing required property \"dbHost\" in \"${canonicalTarget}\".`);\n  }\n  if (typeof record.dbHost !== 'string' || record.dbHost.trim().length === 0) {\n    throw new TypeError(\n      `Invalid \"dbHost\" in \"${canonicalTarget}\": expected a non-empty string, received ${typeof record.dbHost}.`\n    );\n  }\n\n  if (!('dbPort' in record)) {\n    throw new TypeError(`Missing required property \"dbPort\" in \"${canonicalTarget}\".`);\n  }\n  if (\n    typeof record.dbPort !== 'number' ||\n    !Number.isInteger(record.dbPort) ||\n    record.dbPort < 1 ||\n    record.dbPort > 65535\n  ) {\n    throw new RangeError(\n      `Invalid \"dbPort\" in \"${canonicalTarget}\": expected integer between 1 and 65535, received ${JSON.stringify(record.dbPort)}.`\n    );\n  }\n\n  return record as T;\n}\n```\n"
       }
     }
   }
